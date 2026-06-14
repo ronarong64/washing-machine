@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
   <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <base target="_top">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
@@ -8,50 +10,61 @@
         font-family: 'Kanit', sans-serif;
         background-color: #fafafa;
         color: #262626;
-        padding: 20px;
+        padding: 15px; /* ลดขอบลงนิดนึงให้มีพื้นที่เนื้อหาเยอะขึ้น */
         margin: 0;
+        font-size: 16px; /* 🌟 กำหนดขนาดฟอนต์ฐานให้ใหญ่ขึ้น */
       }
       .header {
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 25px;
+        margin-top: 10px;
       }
       .header h2 {
         margin: 0;
         font-weight: 500;
         color: #000;
+        font-size: 1.8em; /* 🌟 ขยายหัวข้อให้ใหญ่ชัดเจน */
+      }
+      .header p {
+        color: #8e8e8e;
+        font-size: 1.1em; /* 🌟 ขยายคำอธิบาย */
+        margin-top: 5px;
       }
       .card {
         background: white;
         border-radius: 12px;
         padding: 20px;
-        margin-bottom: 15px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06); /* เพิ่มเงาให้ดูมีมิติขึ้นนิดหน่อย */
         border: 1px solid #dbdbdb;
       }
       .month-title {
-        font-size: 1.1em;
+        font-size: 1.3em; /* 🌟 ขยายชื่อเดือน */
         font-weight: 500;
         border-bottom: 1px solid #efefef;
         padding-bottom: 10px;
         margin-bottom: 15px;
+        color: #1DB446; /* เปลี่ยนสีเดือนให้ดูสดใสขึ้น */
       }
       .stat-row {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 8px;
-        font-size: 0.95em;
+        margin-bottom: 12px;
+        font-size: 1.15em; /* 🌟 ขยายขนาดตัวอักษรแต่ละบรรทัด */
       }
       .total {
         font-weight: 500;
-        color: #0095f6; /* สีฟ้าสไตล์ Instagram */
-        font-size: 1.1em;
-        margin-top: 10px;
-        padding-top: 10px;
+        color: #0095f6;
+        font-size: 1.4em; /* 🌟 ขยายบรรทัดรวมยอดให้เด่นที่สุด */
+        margin-top: 15px;
+        padding-top: 15px;
         border-top: 1px dashed #efefef;
       }
       .loading {
         text-align: center;
         color: #8e8e8e;
+        font-size: 1.2em; /* 🌟 ขยายข้อความโหลด */
+        margin-top: 40px;
       }
     </style>
   </head>
@@ -59,18 +72,17 @@
     
     <div class="header">
       <h2>📊 รายงานรายรับ</h2>
-      <p style="color: #8e8e8e; font-size: 0.9em; margin-top: 5px;">เฉพาะเจ้าของร้าน</p>
+      <p>เฉพาะเจ้าของร้าน</p>
     </div>
 
     <div id="report-container">
-      <div class="loading">กำลังดึงข้อมูล...</div>
+      <div class="loading">กำลังดึงข้อมูล... ⏳</div>
     </div>
 
     <script>
       // ⚠️ นำ Web App URL ของคุณ (ที่ได้จากการ Deploy GAS) มาใส่ตรงนี้
       const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxy1MVAsyOuQWE_379RzyOGacWOeEgAHGJHfylIyZeI_A0jkiBEsYFImuz5_peKz-mo9g/exec';
 
-      // ใช้ fetch ดึงข้อมูล JSON จาก GAS
       fetch(GAS_WEB_APP_URL + '?action=getReport')
         .then(response => response.json())
         .then(data => {
@@ -78,7 +90,7 @@
         })
         .catch(error => {
           console.error('Error:', error);
-          document.getElementById('report-container').innerHTML = '<div class="loading">❌ เกิดข้อผิดพลาดในการดึงข้อมูล</div>';
+          document.getElementById('report-container').innerHTML = '<div class="loading" style="color:#FF334B;">❌ เกิดข้อผิดพลาดในการดึงข้อมูล</div>';
         });
 
       function showReport(data) {
@@ -98,7 +110,7 @@
           card.innerHTML = `
             <div class="month-title">📅 ${month}</div>
             <div class="stat-row">
-              <span>📱 สแกนจ่าย (LINE)</span>
+              <span>📱 สแกนจ่าย</span>
               <span>฿${monthData.transfer}</span>
             </div>
             <div class="stat-row">
