@@ -67,8 +67,19 @@
     </div>
 
     <script>
-      // เรียกฟังก์ชันฝั่ง GAS เพื่อดึงข้อมูลมาแสดง
-      google.script.run.withSuccessHandler(showReport).getReportData();
+      // ⚠️ นำ Web App URL ของคุณ (ที่ได้จากการ Deploy GAS) มาใส่ตรงนี้
+      const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxy1MVAsyOuQWE_379RzyOGacWOeEgAHGJHfylIyZeI_A0jkiBEsYFImuz5_peKz-mo9g/exec';
+
+      // ใช้ fetch ดึงข้อมูล JSON จาก GAS
+      fetch(GAS_WEB_APP_URL + '?action=getReport')
+        .then(response => response.json())
+        .then(data => {
+          showReport(data);
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          document.getElementById('report-container').innerHTML = '<div class="loading">❌ เกิดข้อผิดพลาดในการดึงข้อมูล</div>';
+        });
 
       function showReport(data) {
         var container = document.getElementById('report-container');
@@ -79,7 +90,6 @@
           return;
         }
 
-        // วนลูปสร้างการ์ดแต่ละเดือน
         for (var month in data) {
           var monthData = data[month];
           var card = document.createElement('div');
