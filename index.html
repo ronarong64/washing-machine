@@ -44,21 +44,36 @@
         border-bottom: 1px solid #efefef;
         padding-bottom: 10px;
         margin-bottom: 15px;
-        color: #1DB446;
+        color: #000;
+      }
+      .section-title {
+        font-size: 0.9em;
+        color: #8e8e8e;
+        font-weight: 500;
+        margin-top: 15px;
+        margin-bottom: 8px;
+        text-transform: uppercase;
       }
       .stat-row {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 12px;
-        font-size: 1.15em;
+        margin-bottom: 10px;
+        font-size: 1.1em;
+      }
+      .stat-row span:last-child {
+        font-weight: 500;
+      }
+      .divider {
+        border-top: 1px dashed #efefef;
+        margin: 15px 0;
       }
       .total {
         font-weight: 500;
-        color: #0095f6;
+        color: #0095f6; /* สีฟ้าสไตล์ Instagram */
         font-size: 1.4em;
         margin-top: 15px;
-        padding-top: 15px;
-        border-top: 1px dashed #efefef;
+        padding-top: 10px;
+        border-top: 1px solid #efefef;
       }
       .loading {
         text-align: center;
@@ -66,33 +81,31 @@
         font-size: 1.2em;
         margin-top: 40px;
       }
-      /* 🌟 ส่วนตกแต่งกล่องรายชื่อลูกค้าสแกนจ่าย */
+      /* ส่วนกล่องรายชื่อลูกค้าโอนเงิน */
       .details-box {
-        background-color: #f0fdf4; /* สีพื้นหลังเขียวอ่อนๆ */
-        border: 1px solid #bbf7d0;
+        background-color: #fcfcfc;
+        border: 1px solid #eef0f2;
         border-radius: 8px;
         padding: 10px 15px;
-        margin-bottom: 15px;
+        margin-top: 5px;
         font-size: 0.95em;
-      }
-      .details-title {
-        font-weight: 500;
-        color: #166534;
-        margin-bottom: 8px;
-        font-size: 0.9em;
       }
       .detail-item {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 4px;
-        color: #374151;
-        border-bottom: 1px dashed #dcfce7;
-        padding-bottom: 4px;
+        margin-bottom: 6px;
+        color: #4b5563;
       }
       .detail-item:last-child {
-        border-bottom: none;
         margin-bottom: 0;
-        padding-bottom: 0;
+      }
+      .machine-tag {
+        font-size: 0.85em;
+        color: #8e8e8e;
+        background-color: #f3f4f6;
+        padding: 1px 6px;
+        border-radius: 4px;
+        margin-left: 5px;
       }
     </style>
   </head>
@@ -108,7 +121,7 @@
     </div>
 
     <script>
-      // ⚠️ นำ Web App URL ของคุณมาใส่ตรงนี้
+      // ⚠️ นำ Web App URL ของคุณ (ที่ได้จากการ Deploy GAS ล่าสุด) มาใส่ตรงนี้
       const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxy1MVAsyOuQWE_379RzyOGacWOeEgAHGJHfylIyZeI_A0jkiBEsYFImuz5_peKz-mo9g/exec';
 
       fetch(GAS_WEB_APP_URL + '?action=getReport')
@@ -133,22 +146,21 @@
         for (var month in data) {
           var monthData = data[month];
           
-          // 🌟 สร้าง HTML สำหรับแสดงรายชื่อคนโอน
+          // วนลูปสร้างรายชื่อลูกค้าสแกนจ่ายพร้อมบอกเครื่องที่ใช้
           var transferDetailsHTML = '';
           if (monthData.transferList && monthData.transferList.length > 0) {
-            transferDetailsHTML = `
-              <div class="details-box">
-                <div class="details-title">📋 รายชื่อลูกค้าที่สแกนจ่าย:</div>
-            `;
+            transferDetailsHTML = `<div class="details-box">`;
             monthData.transferList.forEach(function(item) {
               transferDetailsHTML += `
                 <div class="detail-item">
-                  <span>👤 ${item.name}</span>
+                  <span>👤 ${item.name} <span class="machine-tag">${item.machine}</span></span>
                   <span>฿${item.amount}</span>
                 </div>
               `;
             });
             transferDetailsHTML += `</div>`;
+          } else {
+            transferDetailsHTML = `<div class="details-box" style="color:#8e8e8e; text-align:center;">ไม่มีประวัติการสแกนจ่ายในเดือนนี้</div>`;
           }
 
           var card = document.createElement('div');
@@ -156,16 +168,34 @@
           
           card.innerHTML = `
             <div class="month-title">📅 ${month}</div>
+            
+            <div class="section-title">แยกตามประเภทเครื่อง</div>
             <div class="stat-row">
-              <span>📱 สแกนจ่าย (รวม)</span>
+              <span>🧺 ยอดรวมเครื่องซักผ้า</span>
+              <span>฿${monthData.washTotal}</span>
+            </div>
+            <div class="stat-row">
+              <span>💨 ยอดรวมเครื่องอบแห้ง</span>
+              <span>฿${monthData.dryTotal}</span>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="section-title">แยกตามช่องทางชำระเงิน</div>
+            <div class="stat-row">
+              <span>📱 สแกนจ่าย (LINE)</span>
               <span>฿${monthData.transfer}</span>
             </div>
-            ${transferDetailsHTML} <div class="stat-row">
+            
+            ${transferDetailsHTML}
+            
+            <div class="stat-row" style="margin-top: 15px;">
               <span>🪙 หยอดเหรียญ</span>
               <span>฿${monthData.coin}</span>
             </div>
+            
             <div class="stat-row total">
-              <span>รวมทั้งหมด</span>
+              <span>รวมรายรับทั้งหมด</span>
               <span>฿${monthData.total}</span>
             </div>
           `;
