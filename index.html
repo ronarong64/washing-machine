@@ -10,9 +10,9 @@
         font-family: 'Kanit', sans-serif;
         background-color: #fafafa;
         color: #262626;
-        padding: 15px; /* ลดขอบลงนิดนึงให้มีพื้นที่เนื้อหาเยอะขึ้น */
+        padding: 15px;
         margin: 0;
-        font-size: 16px; /* 🌟 กำหนดขนาดฟอนต์ฐานให้ใหญ่ขึ้น */
+        font-size: 16px;
       }
       .header {
         text-align: center;
@@ -23,11 +23,11 @@
         margin: 0;
         font-weight: 500;
         color: #000;
-        font-size: 1.8em; /* 🌟 ขยายหัวข้อให้ใหญ่ชัดเจน */
+        font-size: 1.8em;
       }
       .header p {
         color: #8e8e8e;
-        font-size: 1.1em; /* 🌟 ขยายคำอธิบาย */
+        font-size: 1.1em;
         margin-top: 5px;
       }
       .card {
@@ -35,27 +35,27 @@
         border-radius: 12px;
         padding: 20px;
         margin-bottom: 20px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.06); /* เพิ่มเงาให้ดูมีมิติขึ้นนิดหน่อย */
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
         border: 1px solid #dbdbdb;
       }
       .month-title {
-        font-size: 1.3em; /* 🌟 ขยายชื่อเดือน */
+        font-size: 1.3em;
         font-weight: 500;
         border-bottom: 1px solid #efefef;
         padding-bottom: 10px;
         margin-bottom: 15px;
-        color: #1DB446; /* เปลี่ยนสีเดือนให้ดูสดใสขึ้น */
+        color: #1DB446;
       }
       .stat-row {
         display: flex;
         justify-content: space-between;
         margin-bottom: 12px;
-        font-size: 1.15em; /* 🌟 ขยายขนาดตัวอักษรแต่ละบรรทัด */
+        font-size: 1.15em;
       }
       .total {
         font-weight: 500;
         color: #0095f6;
-        font-size: 1.4em; /* 🌟 ขยายบรรทัดรวมยอดให้เด่นที่สุด */
+        font-size: 1.4em;
         margin-top: 15px;
         padding-top: 15px;
         border-top: 1px dashed #efefef;
@@ -63,8 +63,36 @@
       .loading {
         text-align: center;
         color: #8e8e8e;
-        font-size: 1.2em; /* 🌟 ขยายข้อความโหลด */
+        font-size: 1.2em;
         margin-top: 40px;
+      }
+      /* 🌟 ส่วนตกแต่งกล่องรายชื่อลูกค้าสแกนจ่าย */
+      .details-box {
+        background-color: #f0fdf4; /* สีพื้นหลังเขียวอ่อนๆ */
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        padding: 10px 15px;
+        margin-bottom: 15px;
+        font-size: 0.95em;
+      }
+      .details-title {
+        font-weight: 500;
+        color: #166534;
+        margin-bottom: 8px;
+        font-size: 0.9em;
+      }
+      .detail-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+        color: #374151;
+        border-bottom: 1px dashed #dcfce7;
+        padding-bottom: 4px;
+      }
+      .detail-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
       }
     </style>
   </head>
@@ -80,7 +108,7 @@
     </div>
 
     <script>
-      // ⚠️ นำ Web App URL ของคุณ (ที่ได้จากการ Deploy GAS) มาใส่ตรงนี้
+      // ⚠️ นำ Web App URL ของคุณมาใส่ตรงนี้
       const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxy1MVAsyOuQWE_379RzyOGacWOeEgAHGJHfylIyZeI_A0jkiBEsYFImuz5_peKz-mo9g/exec';
 
       fetch(GAS_WEB_APP_URL + '?action=getReport')
@@ -104,16 +132,35 @@
 
         for (var month in data) {
           var monthData = data[month];
+          
+          // 🌟 สร้าง HTML สำหรับแสดงรายชื่อคนโอน
+          var transferDetailsHTML = '';
+          if (monthData.transferList && monthData.transferList.length > 0) {
+            transferDetailsHTML = `
+              <div class="details-box">
+                <div class="details-title">📋 รายชื่อลูกค้าที่สแกนจ่าย:</div>
+            `;
+            monthData.transferList.forEach(function(item) {
+              transferDetailsHTML += `
+                <div class="detail-item">
+                  <span>👤 ${item.name}</span>
+                  <span>฿${item.amount}</span>
+                </div>
+              `;
+            });
+            transferDetailsHTML += `</div>`;
+          }
+
           var card = document.createElement('div');
           card.className = 'card';
           
           card.innerHTML = `
             <div class="month-title">📅 ${month}</div>
             <div class="stat-row">
-              <span>📱 สแกนจ่าย</span>
+              <span>📱 สแกนจ่าย (รวม)</span>
               <span>฿${monthData.transfer}</span>
             </div>
-            <div class="stat-row">
+            ${transferDetailsHTML} <div class="stat-row">
               <span>🪙 หยอดเหรียญ</span>
               <span>฿${monthData.coin}</span>
             </div>
