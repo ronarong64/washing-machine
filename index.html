@@ -16,7 +16,7 @@
       }
       .header {
         text-align: center;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
         margin-top: 10px;
       }
       .header h2 {
@@ -30,6 +30,37 @@
         font-size: 1.1em;
         margin-top: 5px;
       }
+      
+      /* 📅 ส่วนกล่องเลือกวัน/เดือนย้อนหลัง */
+      .filter-container {
+        background: white;
+        border-radius: 12px;
+        padding: 12px 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        border: 1px solid #dbdbdb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .filter-label {
+        font-weight: 500;
+        color: #262626;
+        font-size: 1.05em;
+      }
+      .filter-select {
+        font-family: 'Kanit', sans-serif;
+        font-size: 1em;
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid #dbdbdb;
+        background-color: #fff;
+        outline: none;
+        color: #262626;
+        cursor: pointer;
+        min-width: 140px;
+      }
+
       .card {
         background: white;
         border-radius: 12px;
@@ -116,35 +147,74 @@
       <p>เฉพาะเจ้าของร้าน</p>
     </div>
 
+    <div class="filter-container" id="filter-wrapper" style="display: none;">
+      <span class="filter-label">📅 เลือกดูย้อนหลัง:</span>
+      <select id="month-filter" class="filter-select">
+        <option value="all">ทั้งหมดทุกเดือน</option>
+      </select>
+    </div>
+
     <div id="report-container">
       <div class="loading">กำลังดึงข้อมูล... ⏳</div>
     </div>
 
     <script>
-      // ⚠️ นำ Web App URL ของคุณ (ที่ได้จากการ Deploy GAS ล่าสุด) มาใส่ตรงนี้
       const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxy1MVAsyOuQWE_379RzyOGacWOeEgAHGJHfylIyZeI_A0jkiBEsYFImuz5_peKz-mo9g/exec';
+      let globalData = {}; // เก็บข้อมูลทั้งหมดไว้คัดกรอง
 
+      // ดึงข้อมูลจาก GAS ครั้งเดียว
       fetch(GAS_WEB_APP_URL + '?action=getReport')
         .then(response => response.json())
         .then(data => {
-          showReport(data);
+          globalData = data;
+          setupFilter(data); // ตั้งค่าตัวเลือกเดือน
+          renderReport('all'); // แสดงผลทั้งหมดเป็นค่าเริ่มต้น
         })
         .catch(error => {
           console.error('Error:', error);
           document.getElementById('report-container').innerHTML = '<div class="loading" style="color:#FF334B;">❌ เกิดข้อผิดพลาดในการดึงข้อมูล</div>';
         });
 
-      function showReport(data) {
+      // ⚙️ สร้างตัวเลือกเดือนย้อนหลังอัตโนมัติจากข้อมูลในระบบ
+      function setupFilter(data) {
+        const filterSelect = document.getElementById('month-filter');
+        const filterWrapper = document.getElementById('filter-wrapper');
+        
+        if (Object.keys(data).length > 0) {
+          filterWrapper.style.display = 'flex'; // แสดงกล่องเลือกเมื่อมีข้อมูล
+          
+          for (var month in data) {
+            var option = document.createElement('option');
+            option.value = month;
+            option.textContent = month;
+            filterSelect.appendChild(option);
+          }
+          
+          // ดักจับเหตุการณ์เมื่อผู้ใช้เลือกเปลี่ยนเดือน
+          filterSelect.addEventListener('change', function() {
+            renderReport(this.value);
+          });
+        }
+      }
+
+      // 🖼️ ฟังก์ชันแสดงผลการรายงาน
+      function renderReport(selectedMonth) {
         var container = document.getElementById('report-container');
         container.innerHTML = '';
 
-        if(Object.keys(data).length === 0) {
+        if(Object.keys(globalData).length === 0) {
           container.innerHTML = '<div class="loading">ยังไม่มีข้อมูลรายรับ</div>';
           return;
         }
 
-        for (var month in data) {
-          var monthData = data[month];
+        // วนลูปเพื่อแสดงข้อมูลตามเงื่อนไขที่เลือก
+        for (var month in globalData) {
+          // ถ้าเลือกเดือนเฉพาะ และเดือนในลูปไม่ตรง ให้ข้ามไป
+          if (selectedMonth !== 'all' && selectedMonth !== month) {
+            continue;
+          }
+
+          var monthData = globalData[month];
 
           // วนลูปสร้างรายชื่อลูกค้าสแกนจ่ายพร้อมบอกเครื่องที่ใช้
           var transferDetailsHTML = '';
@@ -196,49 +266,6 @@
             <div class="stat-row total">
               <span>รวมรายรับทั้งหมด</span>
               <span>฿${Number(monthData.total).toFixed(2)}</span>
-            </div>
-          `;
-          container.appendChild(card);
-        }
-            transferDetailsHTML += `</div>`;
-          } else {
-            transferDetailsHTML = `<div class="details-box" style="color:#8e8e8e; text-align:center;">ไม่มีประวัติการสแกนจ่ายในเดือนนี้</div>`;
-          }
-
-          var card = document.createElement('div');
-          card.className = 'card';
-          
-          card.innerHTML = `
-            <div class="month-title">📅 ${month}</div>
-            
-            <div class="section-title">แยกตามประเภทเครื่อง</div>
-            <div class="stat-row">
-              <span>🧺 ยอดรวมเครื่องซักผ้า</span>
-              <span>฿${monthData.washTotal}</span>
-            </div>
-            <div class="stat-row">
-              <span>💨 ยอดรวมเครื่องอบแห้ง</span>
-              <span>฿${monthData.dryTotal}</span>
-            </div>
-            
-            <div class="divider"></div>
-            
-            <div class="section-title">แยกตามช่องทางชำระเงิน</div>
-            <div class="stat-row">
-              <span>📱 สแกนจ่าย (LINE)</span>
-              <span>฿${monthData.transfer}</span>
-            </div>
-            
-            ${transferDetailsHTML}
-            
-            <div class="stat-row" style="margin-top: 15px;">
-              <span>🪙 หยอดเหรียญ</span>
-              <span>฿${monthData.coin}</span>
-            </div>
-            
-            <div class="stat-row total">
-              <span>รวมรายรับทั้งหมด</span>
-              <span>฿${monthData.total}</span>
             </div>
           `;
           container.appendChild(card);
