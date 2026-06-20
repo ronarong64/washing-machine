@@ -145,7 +145,7 @@
 
         for (var month in data) {
           var monthData = data[month];
-          
+
           // วนลูปสร้างรายชื่อลูกค้าสแกนจ่ายพร้อมบอกเครื่องที่ใช้
           var transferDetailsHTML = '';
           if (monthData.transferList && monthData.transferList.length > 0) {
@@ -154,10 +154,52 @@
               transferDetailsHTML += `
                 <div class="detail-item">
                   <span>👤 ${item.name} <span class="machine-tag">${item.machine}</span></span>
-                  <span>฿${item.amount}</span>
+                  <span>฿${Number(item.amount).toFixed(2)}</span>
                 </div>
               `;
             });
+            transferDetailsHTML += `</div>`;
+          } else {
+            transferDetailsHTML = `<div class="details-box" style="color:#8e8e8e; text-align:center;">ไม่มีประวัติการสแกนจ่ายในเดือนนี้</div>`;
+          }
+
+          var card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <div class="month-title">📅 ${month}</div>
+            
+            <div class="section-title">แยกตามประเภทเครื่อง</div>
+            <div class="stat-row">
+              <span>🧺 ยอดรวมเครื่องซักผ้า</span>
+              <span>฿${Number(monthData.washTotal).toFixed(2)}</span>
+            </div>
+            <div class="stat-row">
+              <span>💨 ยอดรวมเครื่องอบแห้ง</span>
+              <span>฿${Number(monthData.dryTotal).toFixed(2)}</span>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="section-title">แยกตามช่องทางชำระเงิน</div>
+            <div class="stat-row">
+              <span>📱 สแกนจ่าย (LINE)</span>
+              <span>฿${Number(monthData.transfer).toFixed(2)}</span>
+            </div>
+            
+            ${transferDetailsHTML}
+            
+            <div class="stat-row" style="margin-top: 15px;">
+              <span>🪙 หยอดเหรียญ</span>
+              <span>฿${Number(monthData.coin).toFixed(2)}</span>
+            </div>
+            
+            <div class="stat-row total">
+              <span>รวมรายรับทั้งหมด</span>
+              <span>฿${Number(monthData.total).toFixed(2)}</span>
+            </div>
+          `;
+          container.appendChild(card);
+        }
             transferDetailsHTML += `</div>`;
           } else {
             transferDetailsHTML = `<div class="details-box" style="color:#8e8e8e; text-align:center;">ไม่มีประวัติการสแกนจ่ายในเดือนนี้</div>`;
