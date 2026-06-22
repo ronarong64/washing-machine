@@ -2,81 +2,87 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ชำระเงินค่าซักผ้า</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>กำลังบันทึกคิวซักผ้า...</title>
+  
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
+  
   <style>
-    body { font-family: 'Kanit', sans-serif; background-color: #fafafa; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-    .app-header { margin-bottom: 20px; text-align: center; }
-    .card { background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); width: 100%; max-width: 350px; text-align: center; }
-    .btn-primary { background-color: #06C755; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; font-size: 16px; margin-top: 20px; cursor: pointer; }
-    .btn-primary:disabled { background-color: #ccc; }
-    #qr-section { display: none; margin-top: 20px; }
-    #qr-image { width: 220px; height: 220px; border: 1px solid #ddd; padding: 5px; border-radius: 8px; }
-    .error-msg { color: #ff3b30; font-weight: 500; }
+    body {
+      font-family: 'Kanit', sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #fafafa; 
+      color: #333333;
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #1DB446; 
+      border-radius: 50%;
+      width: 45px;
+      height: 45px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    h2 { font-weight: 500; font-size: 1.3rem; margin: 0; }
+    p { font-weight: 300; font-size: 0.95rem; color: #888888; margin-top: 8px; }
   </style>
 </head>
 <body>
 
-  <div class="app-header">
-    <img src="https://raw.githubusercontent.com/ronarong64/washing-machine/refs/heads/main/LINE%20Icon.png" width="50" style="border-radius: 50%;">
-    <h2>ร้านสะดวกซัก</h2>
-  </div>
-
-  <div class="card" id="main-card">
-    <div id="content-area">
-      <p id="machine-display">กำลังตรวจสอบข้อมูลเครื่อง...</p>
-      <button class="btn-primary" id="btn-generate" onclick="generateQR()" disabled>สร้าง QR Code ชำระเงิน</button>
-    </div>
-
-    <div id="qr-section">
-      <img id="qr-image" src="" alt="QR Code">
-      <p style="font-size: 0.9rem; color: #666; margin-top: 10px;">บันทึกรูปนี้ไปสแกนในแอปธนาคาร</p>
-    </div>
-  </div>
+  <div class="spinner"></div>
+  <h2 id="status-title">กำลังดำเนินการ...</h2>
+  <p id="status-desc">กรุณารอสักครู่ ระบบกำลังส่งคำสั่งเข้าแชท</p>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  
   <script>
-    // 1. ตรวจสอบ Machine ID ตั้งแต่โหลดหน้าเว็บ
-    const urlParams = new URLSearchParams(window.location.search);
-    const machineId = urlParams.get('machine');
+    // ⚠️ ใส่ LIFF ID ของคุณ
+    const myLiffId = "2010363734-hFDjDcdH";
+    // ⚠️ ใส่ URL ของ GAS ที่อัปเดตล่าสุด
+    const gasUrl = "https://script.google.com/macros/s/AKfycbxy1MVAsyOuQWE_379RzyOGacWOeEgAHGJHfylIyZeI_A0jkiBEsYFImuz5_peKz-mo9g/exec"; 
 
-    async function initPage() {
+    async function initializeLiff() {
       try {
-        await liff.init({ liffId: "2010363734-hFDjDcdH" });
-        if (!machineId) {
-          document.getElementById('machine-display').innerHTML = `<span class="error-msg">❌ ไม่พบข้อมูลเครื่องซักผ้า<br>กรุณาตรวจสอบ QR Code อีกครั้ง</span>`;
+        await liff.init({ liffId: myLiffId });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
           return;
         }
-        document.getElementById('machine-display').innerText = `เครื่องซักผ้าหมายเลข: ${machineId}`;
-        document.getElementById('btn-generate').disabled = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const machineNumber = urlParams.get('machine');
+
+        if (machineNumber) {
+          const profile = await liff.getProfile();
+          const userId = profile.userId;
+
+          const fetchUrl = `${gasUrl}?action=reserve&id=${machineNumber}&userId=${userId}`;
+          
+          await fetch(fetchUrl, { mode: 'no-cors' }); 
+          
+          liff.closeWindow();
+        } else {
+          document.getElementById('status-title').innerText = "ไม่พบข้อมูล";
+          document.querySelector('.spinner').style.display = 'none';
+        }
       } catch (err) {
-        console.error("LIFF init failed", err);
+        console.error("Error:", err);
+        document.getElementById('status-title').innerText = "เกิดข้อผิดพลาด";
+        document.querySelector('.spinner').style.display = 'none';
       }
     }
 
-    // 2. ฟังก์ชันสร้าง QR
-    async function generateQR() {
-      const btn = document.getElementById('btn-generate');
-      btn.innerText = "กำลังสร้าง QR...";
-      btn.disabled = true;
-
-      google.script.run
-        .withSuccessHandler(function(qrUrl) {
-          if(!qrUrl) throw "ไม่สามารถสร้าง QR ได้";
-          document.getElementById('qr-image').src = qrUrl;
-          document.getElementById('qr-section').style.display = 'block';
-          document.getElementById('btn-generate').style.display = 'none';
-        })
-        .withFailureHandler(function(err) {
-          alert("ระบบขัดข้อง: " + err);
-          btn.disabled = false;
-          btn.innerText = "สร้าง QR Code ชำระเงิน";
-        })
-        .createSlip2GoQR(machineId); 
-    }
-
-    initPage();
+    initializeLiff();
   </script>
 </body>
 </html>
