@@ -9,9 +9,11 @@
     body { font-family: 'Kanit', sans-serif; background-color: #fafafa; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
     .app-header { margin-bottom: 20px; text-align: center; }
     .card { background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); width: 100%; max-width: 350px; text-align: center; }
-    .btn-primary { background-color: #06C755; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; font-size: 16px; margin-top: 20px; }
+    .btn-primary { background-color: #06C755; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; font-size: 16px; margin-top: 20px; cursor: pointer; }
+    .btn-primary:disabled { background-color: #ccc; }
     #qr-section { display: none; margin-top: 20px; }
-    #qr-image { width: 220px; height: 220px; border: 1px solid #ddd; padding: 5px; }
+    #qr-image { width: 220px; height: 220px; border: 1px solid #ddd; padding: 5px; border-radius: 8px; }
+    .error-msg { color: #ff3b30; font-weight: 500; }
   </style>
 </head>
 <body>
@@ -21,9 +23,11 @@
     <h2>ร้านสะดวกซัก</h2>
   </div>
 
-  <div class="card">
-    <p>กรุณากดปุ่มเพื่อสร้าง QR Code สำหรับชำระเงิน</p>
-    <button class="btn-primary" id="btn-generate" onclick="generateQR()">สร้าง QR Code ชำระเงิน</button>
+  <div class="card" id="main-card">
+    <div id="content-area">
+      <p id="machine-display">กำลังตรวจสอบข้อมูลเครื่อง...</p>
+      <button class="btn-primary" id="btn-generate" onclick="generateQR()" disabled>สร้าง QR Code ชำระเงิน</button>
+    </div>
 
     <div id="qr-section">
       <img id="qr-image" src="" alt="QR Code">
@@ -33,28 +37,46 @@
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
+    // 1. ตรวจสอบ Machine ID ตั้งแต่โหลดหน้าเว็บ
+    const urlParams = new URLSearchParams(window.location.search);
+    const machineId = urlParams.get('machine');
+
+    async function initPage() {
+      try {
+        await liff.init({ liffId: "2010363734-hFDjDcdH" });
+        if (!machineId) {
+          document.getElementById('machine-display').innerHTML = `<span class="error-msg">❌ ไม่พบข้อมูลเครื่องซักผ้า<br>กรุณาตรวจสอบ QR Code อีกครั้ง</span>`;
+          return;
+        }
+        document.getElementById('machine-display').innerText = `เครื่องซักผ้าหมายเลข: ${machineId}`;
+        document.getElementById('btn-generate').disabled = false;
+      } catch (err) {
+        console.error("LIFF init failed", err);
+      }
+    }
+
+    // 2. ฟังก์ชันสร้าง QR
     async function generateQR() {
       const btn = document.getElementById('btn-generate');
-      const urlParams = new URLSearchParams(window.location.search);
-      const machineId = urlParams.get('machine') || '1';
-      
       btn.innerText = "กำลังสร้าง QR...";
       btn.disabled = true;
 
-      // ส่งค่าไปให้ Google Apps Script (ไฟล์ .gs)
       google.script.run
         .withSuccessHandler(function(qrUrl) {
+          if(!qrUrl) throw "ไม่สามารถสร้าง QR ได้";
           document.getElementById('qr-image').src = qrUrl;
           document.getElementById('qr-section').style.display = 'block';
-          btn.style.display = 'none'; // ซ่อนปุ่มหลังจากสร้าง QR แล้ว
+          document.getElementById('btn-generate').style.display = 'none';
         })
         .withFailureHandler(function(err) {
-          alert("เกิดข้อผิดพลาด: " + err);
+          alert("ระบบขัดข้อง: " + err);
           btn.disabled = false;
-          btn.innerText = "ลองใหม่อีกครั้ง";
+          btn.innerText = "สร้าง QR Code ชำระเงิน";
         })
         .createSlip2GoQR(machineId); 
     }
+
+    initPage();
   </script>
 </body>
 </html>
