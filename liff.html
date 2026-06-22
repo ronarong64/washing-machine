@@ -47,6 +47,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const machineId = urlParams.get('machine');
     let base64ImageString = null;
+    let lineUserId = null; // 🟢 เพิ่มเข้ามา: ตัวแปรเก็บ LINE User ID ของลูกค้าที่ใช้งาน
 
     // ตั้งราคาอ้างอิงให้ตรงกับระบบหลังบ้าน
     const prices = { "1": 30, "2": 40, "3": 50 };
@@ -63,8 +64,21 @@
         document.getElementById('machine-price').innerText = "ยอดเงินโอนขั้นต่ำ: " + prices[machineId] + " บาท";
       }
       
-      // เรียกใช้งาน LINE LIFF SDK เผื่อสั่งปิดหน้าต่างเมื่อทำงานสำเร็จ
-      liff.init({ liffId: "2010363734-hFDjDcdH" }).catch(err => console.error(err));
+      // 🟢 ปรับปรุงการเปิดใช้ LINE LIFF SDK เพื่อดึง Profile User ID ของผู้ใช้โดยอัตโนมัติ
+      liff.init({ liffId: "2010363734-hFDjDcdH" })
+        .then(() => {
+          if (!liff.isLoggedIn()) {
+            liff.login(); // บังคับให้ล็อกอินเข้า LINE หากเปิดนอกแอป LINE
+          } else {
+            liff.getProfile()
+              .then(profile => {
+                lineUserId = profile.userId; // บันทึกค่า ID ของผู้ใช้งานไลน์เอาไว้
+                console.log("ดึงข้อมูล LINE User ID สำเร็จ: " + lineUserId);
+              })
+              .catch(err => console.error("ไม่สามารถดึงโปรไฟล์ผู้ใช้ได้: ", err));
+          }
+        })
+        .catch(err => console.error("LIFF เกิดข้อผิดพลาดตอนเริ่มต้น: ", err));
     };
 
     // เมื่อผู้ใช้เลือกไฟล์รูปภาพสลิป
@@ -103,7 +117,8 @@
       const payload = {
         "action": "verifySlip",
         "machine": machineId,
-        "image": base64ImageString
+        "image": base64ImageString,
+        "userId": lineUserId // 🟢 ส่งรหัส LINE ID แนบพ่วงไปด้วยในระบบตรวจสอบสลิป
       };
 
       // ใช้ Content-Type: text/plain เพื่อป้องกันปัญหา Browser บล็อก CORS (Preflight OPTIONS) ของ Google Script
