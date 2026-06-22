@@ -36,16 +36,19 @@
     <div class="spinner" id="loading-spinner"></div>
     <p id="status-msg"></p>
     
-    <button class="btn-primary" id="btn-submit" onclick="submitSlip()" disabled>ตรวจสอบสลิปเงินโอน</button>
+    <button class="btn-primary" id="btn-submit" onclick="submitSlip()" disabled>ส่งข้อมูลตรวจสอบสลิป</button>
   </div>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
+    // ⚠️ ลิงก์ Web App URL ของ Google Apps Script ของคุณ
+    const gasUrl = "https://script.google.com/macros/s/AKfycbxy1MVAsyOuQWE_379RzyOGacWOeEgAHGJHfylIyZeI_A0jkiBEsYFImuz5_peKz-mo9g/exec";
+    
     const urlParams = new URLSearchParams(window.location.search);
     const machineId = urlParams.get('machine');
     let base64ImageString = null;
 
-    // 🔗 ตั้งราคาอ้างอิงให้ล้อกับในตัวแปรสคริปต์หลังบ้าน
+    // ตั้งราคาอ้างอิงให้ตรงกับระบบหลังบ้าน
     const prices = { "1": 30, "2": 40, "3": 50 };
 
     window.onload = function() {
@@ -59,6 +62,9 @@
         document.getElementById('machine-title').innerText = "ตู้บริการ: " + name;
         document.getElementById('machine-price').innerText = "ยอดเงินโอนขั้นต่ำ: " + prices[machineId] + " บาท";
       }
+      
+      // เรียกใช้งาน LINE LIFF SDK เผื่อสั่งปิดหน้าต่างเมื่อทำงานสำเร็จ
+      liff.init({ liffId: "2010363734-hFDjDcdH" }).catch(err => console.error(err));
     };
 
     // เมื่อผู้ใช้เลือกไฟล์รูปภาพสลิป
@@ -73,14 +79,14 @@
         const preview = document.getElementById('preview');
         preview.src = event.target.result;
         preview.style.display = 'block';
-        base64ImageString = event.target.result; // เก็บ Base64 ไว้ส่งหลังบ้าน
+        base64ImageString = event.target.result; 
         document.getElementById('btn-submit').disabled = false;
         document.getElementById('status-msg').innerText = "";
       };
       reader.readAsDataURL(file);
     });
 
-    // ส่งไฟล์ภาพสลิปไปตรวจสอบที่ Google Apps Script
+    // ยิงข้อมูลสลิปข้ามเซิร์ฟเวอร์ด้วย Fetch POST เข้าไปที่ doPost ของ GAS
     function submitSlip() {
       if (!base64ImageString || !machineId) return;
       
@@ -94,31 +100,40 @@
       msg.innerText = "ระบบกำลังอัปโหลดและส่งภาพสลิปให้ slip2go ตรวจสอบความถูกต้องจากธนาคาร...";
       spinner.style.display = "block";
 
-      // เรียกฟังก์ชัน processSlip ในไฟล์สคริปต์ .gs ของเรา
-      google.script.run
-        .withSuccessHandler(function(response) {
-          spinner.style.display = "none";
-          if (response.success) {
-            msg.style.color = "#06C755";
-            msg.innerText = "✅ " + response.message;
-            btn.style.display = "none";
-            // หากสำเร็จสามารถตั้งให้ปิดหน้าจอ LINE อัตโนมัติหลังจากผ่านไป 3 วินาทีได้
-            setTimeout(function() { liff.closeWindow(); }, 3500);
-          } else {
-            msg.style.color = "#FF334B";
-            msg.innerText = "❌ " + response.message;
-            btn.innerText = "ลองอัปโหลดใหม่อีกครั้ง";
-            btn.disabled = false;
-          }
-        })
-        .withFailureHandler(function(error) {
-          spinner.style.display = "none";
+      const payload = {
+        "action": "verifySlip",
+        "machine": machineId,
+        "image": base64ImageString
+      };
+
+      // ใช้ Content-Type: text/plain เพื่อป้องกันปัญหา Browser บล็อก CORS (Preflight OPTIONS) ของ Google Script
+      fetch(gasUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(response => {
+        spinner.style.display = "none";
+        if (response.success) {
+          msg.style.color = "#06C755";
+          msg.innerText = "✅ " + response.message;
+          btn.style.display = "none";
+          setTimeout(function() { liff.closeWindow(); }, 3500);
+        } else {
           msg.style.color = "#FF334B";
-          msg.innerText = "เกิดข้อผิดพลาดในการเชื่อมต่อระบบ: " + error;
-          btn.innerText = "พยายามใหม่อีกครั้ง";
+          msg.innerText = "❌ " + response.message;
+          btn.innerText = "ลองอัปโหลดใหม่อีกครั้ง";
           btn.disabled = false;
-        })
-        .processSlip(base64ImageString, machineId);
+        }
+      })
+      .catch(error => {
+        spinner.style.display = "none";
+        msg.style.color = "#FF334B";
+        msg.innerText = "เกิดข้อผิดพลาดในการเชื่อมต่อระบบ: " + error;
+        btn.innerText = "พยายามใหม่อีกครั้ง";
+        btn.disabled = false;
+      });
     }
   </script>
 </body>
