@@ -3,86 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>กำลังบันทึกคิวซักผ้า...</title>
-  
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
-  
+  <title>แจ้งชำระเงิน</title>
   <style>
-    body {
-      font-family: 'Kanit', sans-serif;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background-color: #fafafa; 
-      color: #333333;
-    }
-    .spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #1DB446; 
-      border-radius: 50%;
-      width: 45px;
-      height: 45px;
-      animation: spin 1s linear infinite;
-      margin-bottom: 20px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    h2 { font-weight: 500; font-size: 1.3rem; margin: 0; }
-    p { font-weight: 300; font-size: 0.95rem; color: #888888; margin-top: 8px; }
+    body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+    .card { width: 100%; max-width: 350px; text-align: center; }
+    #file-input { margin: 20px 0; }
   </style>
 </head>
 <body>
-
-  <div class="spinner"></div>
-  <h2 id="status-title">กำลังดำเนินการ...</h2>
-  <p id="status-desc">กรุณารอสักครู่ ระบบกำลังส่งคำสั่งเข้าแชท</p>
+  <h2>อัปโหลดสลิปโอนเงิน</h2>
+  <div class="card">
+    <input type="file" id="file-input" accept="image/*">
+    <button onclick="uploadSlip()">ยืนยันการชำระเงิน</button>
+  </div>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  
   <script>
-    // ⚠️ ใส่ LIFF ID ของคุณ
-    const myLiffId = "2010363734-hFDjDcdH";
-    // ⚠️ ใส่ URL ของ GAS ที่อัปเดตล่าสุด
-    const gasUrl = "https://script.google.com/macros/s/AKfycbxy1MVAsyOuQWE_379RzyOGacWOeEgAHGJHfylIyZeI_A0jkiBEsYFImuz5_peKz-mo9g/exec"; 
-
-    async function initializeLiff() {
-      try {
-        await liff.init({ liffId: myLiffId });
-
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return;
-        }
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const machineNumber = urlParams.get('machine');
-
-        if (machineNumber) {
-          const profile = await liff.getProfile();
-          const userId = profile.userId;
-
-          const fetchUrl = `${gasUrl}?action=reserve&id=${machineNumber}&userId=${userId}`;
-          
-          await fetch(fetchUrl, { mode: 'no-cors' }); 
-          
-          liff.closeWindow();
-        } else {
-          document.getElementById('status-title').innerText = "ไม่พบข้อมูล";
-          document.querySelector('.spinner').style.display = 'none';
-        }
-      } catch (err) {
-        console.error("Error:", err);
-        document.getElementById('status-title').innerText = "เกิดข้อผิดพลาด";
-        document.querySelector('.spinner').style.display = 'none';
-      }
+    async function uploadSlip() {
+      const file = document.getElementById('file-input').files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        google.script.run
+          .withSuccessHandler(() => alert("ตรวจสอบสลิปเรียบร้อย!"))
+          .processSlip(e.target.result, new URLSearchParams(window.location.search).get('machine'));
+      };
+      reader.readAsDataURL(file);
     }
-
-    initializeLiff();
   </script>
 </body>
 </html>
