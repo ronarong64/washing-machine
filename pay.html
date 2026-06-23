@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <base target="_top">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Kanit', sans-serif;
+        background-color: #fafafa;
+        color: #262626;
+        padding: 15px;
+        margin: 0;
+        font-size: 16px;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+        margin-top: 10px;
+      }
+      .header h2 {
+        margin: 0;
+        font-weight: 500;
+        color: #000;
+        font-size: 1.8em;
+      }
+      .header p {
+        color: #8e8e8e;
+        font-size: 1.1em;
+        margin-top: 5px;
+      }
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        margin-bottom: 20px;
+        border: 1px solid #efefef;
+      }
+      .month-title {
+        font-size: 1.3em;
+        font-weight: 500;
+        color: #0056b3;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 5px;
+      }
+      .section-title {
+        font-size: 1em;
+        font-weight: 500;
+        color: #666;
+        margin-top: 15px;
+        margin-bottom: 8px;
+      }
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 1.05em;
+      }
+      .stat-row.total {
+        font-size: 1.2em;
+        font-weight: 500;
+        color: #06C755;
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 2px dashed #f0f0f0;
+      }
+      .divider {
+        height: 1px;
+        background-color: #f0f0f0;
+        margin: 15px 0;
+      }
+      .details-box {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-top: 5px;
+        font-size: 0.9em;
+        max-height: 150px;
+        overflow-y: auto;
+      }
+      .detail-item {
+        display: flex;
+        justify-content: space-between;
+        color: #555;
+        margin-bottom: 4px;
+        border-bottom: 1px dashed #e9ecef;
+        padding-bottom: 4px;
+      }
+      .detail-item:last-child {
+        margin-bottom: 0;
+        border-bottom: none;
+      }
+      .loading {
+        text-align: center;
+        color: #8e8e8e;
+        margin-top: 50px;
+        font-size: 1.1em;
+      }
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #0056b3;
+        border-radius: 50%;
+        width: 35px;
+        height: 35px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+
+    <div class="header">
+      <h2>📊 สรุปรายรับร้านสะดวกซัก</h2>
+      <p>ข้อมูลอัปเดตเรียลไทม์จากระบบหลังบ้าน</p>
+    </div>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      กำลังดึงข้อมูลรายงานรายรับ...
+    </div>
+
+    <div id="report-container"></div>
+
+    <script>
+      // ⚠️ ลิงก์ Web App URL ของ Google Apps Script ที่ใช้ดึงข้อมูลรายงาน
+      const gasUrl = "https://script.google.com/macros/s/AKfycbxy1MVAsyOuQWE_379RzyOGacWOeEgAHGJHfylIyZeI_A0jkiBEsYFImuz5_peKz-mo9g/exec";
+
+      window.onload = function() {
+        fetchReportData();
+      };
+
+      function fetchReportData() {
+        // ดึงข้อมูลผ่านคำสั่ง action=getReport จากสคริปต์หลังบ้าน
+        fetch(`${gasUrl}?action=getReport`)
+          .then(response => response.json())
+          .then(data => {
+            document.getElementById('loading').style.display = 'none';
+            renderReport(data);
+          })
+          .catch(error => {
+            console.error('Error fetching report:', error);
+            document.getElementById('loading').innerHTML = `❌ เกิดข้อผิดพลาดในการโหลดข้อมูล: ${error.message}`;
+          });
+      }
+
+      function renderReport(data) {
+        var container = document.getElementById('report-container');
+        container.innerHTML = '';
+
+        var months = Object.keys(data).reverse(); // เรียงลำดับจากเดือนล่าสุดขึ้นก่อน
+
+        if (months.length === 0) {
+          container.innerHTML = '<div class="card" style="text-align:center; color:#8e8e8e;">📭 ยังไม่มีข้อมูลบันทึกรายรับในระบบ</div>';
+          return;
+        }
+
+        months.forEach(function(month) {
+          var monthData = data[month];
+          
+          // วนลูปสร้างรายการสแกนจ่ายของลูกค้าในเดือนนั้นๆ
+          var transferDetailsHTML = '';
+          if (monthData.transferList && monthData.transferList.length > 0) {
+            transferDetailsHTML += '<div class="details-box">';
+            monthData.transferList.reverse().forEach(function(item) {
+              transferDetailsHTML += `
+                <div class="detail-item">
+                  <span>📱 ${item.name} (${item.machine})</span>
+                  <strong>฿${Number(item.amount).toFixed(2)}</strong>
+                </div>
+              `;
+            });
+            transferDetailsHTML += '</div>';
+          } else {
+            transferDetailsHTML = `<div class="details-box" style="color:#8e8e8e; text-align:center;">ไม่มีประวัติการสแกนจ่ายในเดือนนี้</div>`;
+          }
+
+          var card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <div class="month-title">📅 เดือนรอบบัญชี: ${month}</div>
+            
+            <div class="section-title">แยกตามประเภทเครื่อง</div>
+            <div class="stat-row">
+              <span>🧺 ยอดรวมกลุ่มเครื่องซักผ้า</span>
+              <span>฿${Number(monthData.washTotal).toFixed(2)}</span>
+            </div>
+            <div class="stat-row">
+              <span>💨 ยอดรวมกลุ่มเครื่องอบแห้ง</span>
+              <span>฿${Number(monthData.dryTotal).toFixed(2)}</span>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="section-title">แยกตามช่องทางชำระเงิน</div>
+            <div class="stat-row">
+              <span>📱 สแกนจ่าย (สลิป/พร้อมเพย์)</span>
+              <span>฿${Number(monthData.transfer).toFixed(2)}</span>
+            </div>
+            
+            ${transferDetailsHTML}
+            
+            <div class="stat-row" style="margin-top: 15px;">
+              <span>🪙 ยอดกล่องหยอดเหรียญหน้าร้าน</span>
+              <span>฿${Number(monthData.coin).toFixed(2)}</span>
+            </div>
+            
+            <div class="stat-row total">
+              <span>รวมรายรับทั้งหมดประจำเดือน</span>
+              <span>฿${Number(monthData.total).toFixed(2)}</span>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      }
+    </script>
+  </body>
+</html>
