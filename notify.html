@@ -1,1 +1,75 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ลงทะเบียนรับแจ้งเตือน</title>
+    <!-- นำเข้า LIFF SDK -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; text-align: center; padding: 50px 20px; background-color: #f5f5f5; }
+        .loader { border: 5px solid #f3f3f3; border-top: 5px solid #1DB446; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        h3 { color: #333; }
+        p { color: #666; }
+    </style>
+</head>
+<body>
 
+    <div class="loader" id="loader"></div>
+    <h3 id="statusText">กำลังตั้งค่าการแจ้งเตือน...</h3>
+    <p>กรุณารอสักครู่ ระบบจะปิดหน้านี้อัตโนมัติ</p>
+
+    <script>
+        // ⚠️ 1. ใส่ LIFF ID ที่ได้จากขั้นตอนที่ 1
+        const LIFF_ID = "ใส่_LIFF_ID_ของคุณตรงนี้"; 
+        
+        // ⚠️ 2. ใส่ URL Web App ของ Google Apps Script ของคุณ
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxy1MVAsyOuQWE_379RzyOGacWOeEgAHGJHfylIyZeI_A0jkiBEsYFImuz5_peKz-mo9g/exec";
+
+        async function main() {
+            await liff.init({ liffId: LIFF_ID });
+
+            if (!liff.isLoggedIn()) {
+                liff.login();
+                return;
+            }
+
+            // ดึงค่าหมายเลขเครื่อง (machineId) จาก URL (เช่น ?machineId=1)
+            const urlParams = new URLSearchParams(window.location.search);
+            const machineId = urlParams.get('machineId');
+
+            if (!machineId) {
+                document.getElementById("statusText").innerText = "❌ ไม่พบหมายเลขเครื่อง";
+                document.getElementById("statusText").style.color = "red";
+                document.getElementById("loader").style.display = "none";
+                return;
+            }
+
+            // ดึงข้อมูลโปรไฟล์ลูกค้า
+            const profile = await liff.getProfile();
+            const userId = profile.userId;
+
+            // ส่งข้อมูลไปที่ Google Apps Script (action=reserve)
+            try {
+                const response = await fetch(`${GAS_URL}?action=reserve&id=${machineId}&userId=${userId}`);
+                const result = await response.text();
+                
+                document.getElementById("statusText").innerText = "✅ ตั้งค่าสำเร็จ!";
+                document.getElementById("statusText").style.color = "#1DB446";
+                
+                // ปิดหน้าจอ LIFF กลับไปที่แชท LINE ใน 1.5 วินาที
+                setTimeout(() => {
+                    liff.closeWindow();
+                }, 1500);
+
+            } catch (error) {
+                document.getElementById("statusText").innerText = "❌ เกิดข้อผิดพลาดในการเชื่อมต่อ";
+                document.getElementById("statusText").style.color = "red";
+            }
+        }
+
+        main();
+    </script>
+</body>
+</html>
